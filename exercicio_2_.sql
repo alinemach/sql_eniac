@@ -126,3 +126,56 @@ preco_unitario) VALUES
 (1021, 118, 8, 1, 260.00),
 -- Pedido 119 (Juliana - pendente)
 (1022, 119, 7, 1, 350.00);
+
+
+
+-- 2. Window Functions
+-- 1. Para cada cliente, mostre o valor do pedido e o rank dos pedidos (maior → menor).
+SELECT c.CUSTOMER_ID AS "Id do cliente",
+       c.NOME AS "Nome do Cliente",
+       o.ORDER_ID "Id do pedido",
+       o.VALOR_TOTAL AS "Valor total",
+       RANK() OVER (PARTITION BY c.CUSTOMER_ID ORDER BY o.VALOR_TOTAL DESC) AS "Rank de pedidos por cliente"
+FROM CUSTOMERS c
+JOIN ORDERS o ON c.CUSTOMER_ID = o.CUSTOMER_ID
+ORDER BY c.CUSTOMER_ID,
+         "Rank de pedidos por cliente";
+
+-- 2. Calcule a média móvel de 3 pedidos para cada cliente.
+SELECT c.CUSTOMER_ID AS "Id do cliente",
+       c.NOME AS "Nome do Cliente",
+       o.ORDER_ID AS "Id do pedido",
+       o.DT_PEDIDO AS "Data do pedido",
+       o.VALOR_TOTAL AS "Valor total",
+       AVG(o.VALOR_TOTAL) OVER (PARTITION BY c.CUSTOMER_ID
+                                ORDER BY o.DT_PEDIDO, o.ORDER_ID
+                                ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) 
+								                        AS "Média móvel de 3 pedidos"
+FROM CUSTOMERS c
+JOIN ORDERS o ON c.CUSTOMER_ID = o.CUSTOMER_ID
+ORDER BY c.CUSTOMER_ID,
+         o.DT_PEDIDO,
+         o.ORDER_ID;
+
+--3. Estruturas de apoio
+--1. Crie uma View que mostre o faturamento diário consolidado
+CREATE VIEW "Faturamento Diario Consolidado" AS
+SELECT DT_PEDIDO AS "Data do faturamento",
+       SUM(VALOR_TOTAL) AS "Faturamento por dia"
+FROM ORDERS
+WHERE STATUS = 'Pago'
+GROUP BY DT_PEDIDO
+ORDER BY DT_PEDIDO;
+
+
+--8. Tratamento de Casos Específicos
+--1. Use CASE WHEN para classificar pedidos em: "Baixo" (<100), "Médio" (100-500), "Alto" (>500).
+SELECT ORDER_ID AS "Id do pedido",
+       VALOR_TOTAL AS "Valor total",
+    CASE
+        WHEN VALOR_TOTAL < 100 THEN 'Baixo'
+        WHEN VALOR_TOTAL >= 100 AND valor_total <= 500 THEN 'Médio'
+        WHEN VALOR_TOTAL > 500 THEN 'Alto'
+    END AS "Classificação do valor"
+FROM ORDERS
+ORDER BY VALOR_TOTAL DESC;
